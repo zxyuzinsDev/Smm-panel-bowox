@@ -1,0 +1,32 @@
+BOWOX SMM PANEL - KONFIGURASI ADMIN
+===================================
+
+Akun admin yang disiapkan di halaman admin:
+Username : bowox
+Password : bowox12
+Email Firebase internal : bowox@bowox.local
+
+PENTING:
+Akun Firebase tidak bisa dibuat otomatis hanya dari file HTML/ZIP.
+Buat akun ini satu kali di Firebase Console:
+
+1. Firebase Console > Project bowok-store
+2. Build > Authentication > Users
+3. Add user
+4. Email    : bowox@bowox.local
+5. Password : bowox12
+6. Setelah dibuat, salin UID akun tersebut.
+7. Build > Firestore Database > Data
+8. Buat collection: admins
+9. Buat document dengan Document ID = UID akun bowox
+10. Tambahkan field:
+    active (boolean) = true
+
+Setelah itu admin.html dapat login dengan username bowox dan password bowox12.
+
+Firebase project yang digunakan:
+projectId: bowok-store
+
+Website pembeli: index.html
+Website admin  : admin.html
+Keduanya menggunakan Firebase project yang sama.

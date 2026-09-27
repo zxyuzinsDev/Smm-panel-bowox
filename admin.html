@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BOWOX SMM PANEL — ADMIN</title>
+<style>
+:root{--bg:#15181d;--card:rgba(235,240,245,.105);--line:rgba(255,255,255,.18);--text:#f5f7fa;--muted:#aeb6c2;--a:#d8dee8;--g:#35d07f;--r:#ff6b6b;--shadow:0 24px 80px rgba(0,0,0,.42)}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 0%,rgba(255,255,255,.13),transparent 30%),radial-gradient(circle at 85% 15%,rgba(154,167,183,.12),transparent 28%),linear-gradient(135deg,#0f1216 0%,#20252b 48%,#121519 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial}body:before{content:"";position:fixed;inset:0;pointer-events:none;background:linear-gradient(120deg,transparent 0 42%,rgba(255,255,255,.025) 50%,transparent 58%)}.wrap{max-width:1200px;margin:auto;padding:18px}.glass{background:linear-gradient(135deg,rgba(255,255,255,.13),rgba(255,255,255,.045));border:1px solid var(--line);backdrop-filter:blur(24px) saturate(125%);-webkit-backdrop-filter:blur(24px) saturate(125%);border-radius:24px;box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.12)}header{padding:16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:10px;z-index:5}.logo{font-weight:900;letter-spacing:2px}.logo span{color:#d9e0e8}button{padding:10px 14px;border-radius:13px;border:1px solid var(--line);background:rgba(255,255,255,.09);color:#fff;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.1);transition:.2s}button:hover{transform:translateY(-1px);background:rgba(255,255,255,.14)}.primary{background:linear-gradient(135deg,#dce3ea,#8795a5);color:#111820;font-weight:800}.danger{background:rgba(255,90,90,.13);color:#ffd0d0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0}.box{padding:18px}.num{font-size:28px;font-weight:800}.section{padding:18px;margin:18px 0}.item{padding:15px;margin:10px 0;border:1px solid var(--line);border-radius:17px;background:rgba(0,0,0,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}.row{display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.status{padding:5px 9px;border-radius:99px;background:rgba(255,255,255,.09);font-size:12px}.muted{color:var(--muted)}img.receipt{max-width:280px;max-height:350px;border-radius:14px;margin-top:10px;box-shadow:0 15px 45px rgba(0,0,0,.35)}input,textarea,select{width:100%;padding:12px;background:rgba(5,8,12,.42);color:#fff;border:1px solid var(--line);border-radius:13px;outline:none}input:focus,textarea:focus,select:focus{border-color:rgba(255,255,255,.45);box-shadow:0 0 0 3px rgba(255,255,255,.05)}label{font-size:13px;color:#cbd2da}.field{display:grid;gap:7px;margin:9px 0}.hidden{display:none!important}@media(max-width:700px){.grid{grid-template-columns:1fr}header{position:static}}
+</style></head><body><div class="wrap">
+<header class="glass"><div class="logo">BOWOX <span>ADMIN</span></div><div><button id="logout" class="danger hidden" onclick="logout()">Keluar</button></div></header>
+<div id="login" class="glass section" style="max-width:450px;margin:50px auto"><h2>Admin Login</h2><p class="muted" style="font-size:13px">Akun admin: <b>bowox</b></p><div class="field"><label>Username admin</label><input id="u" value="bowox" autocomplete="username"></div><div class="field"><label>Password</label><input id="p" type="password" value="bowox12" autocomplete="current-password"></div><button class="primary" style="width:100%" onclick="login()">Masuk</button><p id="msg" class="muted"></p></div>
+<main id="panel" class="hidden">
+<div class="grid"><div class="glass box"><span class="muted">Pengguna</span><div class="num" id="usersN">0</div></div><div class="glass box"><span class="muted">Top Up Pending</span><div class="num" id="topN">0</div></div><div class="glass box"><span class="muted">Order Pending</span><div class="num" id="orderN">0</div></div></div>
+<section class="glass section"><div class="row"><h2>Permintaan Top Up</h2><span class="status">Realtime</span></div><div id="topups"></div></section>
+<section class="glass section"><div class="row"><h2>Pesanan</h2><span class="status">Realtime</span></div><div id="orders"></div></section>
+<section class="glass section"><h2>Pengguna</h2><div id="users"></div></section>
+</main></div>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+import {getFirestore,doc,getDoc,collection,query,orderBy,onSnapshot,runTransaction,updateDoc} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyAe3YSxiWcutZ9ohVf_CQ_ic9Ee4Pu7XAE",
+  authDomain: "bowok-store.firebaseapp.com",
+  projectId: "bowok-store",
+  storageBucket: "bowok-store.firebasestorage.app",
+  messagingSenderId: "324434480713",
+  appId: "1:324434480713:web:1566e14240a88208183998",
+  measurementId: "G-DCC10NVKPV"
+};
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+const $=id=>document.getElementById(id),money=n=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n||0);
+let unsubs=[];
+async function login(){
+ const u=$("u").value.trim().toLowerCase(),p=$("p").value;
+ try{await signInWithEmailAndPassword(auth,u+"@bowox.local",p)}catch(e){$("msg").textContent=e.message.replace("Firebase: ","")}
+}
+window.login=login;window.logout=()=>signOut(auth);
+async function isAdmin(uid){const s=await getDoc(doc(db,"admins",uid));return s.exists()&&s.data().active!==false}
+async function initAdmin(u){
+ if(!u)return;
+ if(!(await isAdmin(u.uid))){$("msg").textContent="Akun ini bukan admin.";await signOut(auth);return}
+ $("login").classList.add("hidden");$("panel").classList.remove("hidden");$("logout").classList.remove("hidden");
+ unsubs.forEach(f=>f&&f());unsubs=[];
+ unsubs.push(onSnapshot(query(collection(db,"users"),orderBy("createdAt","desc")),s=>{$("usersN").textContent=s.size;$("users").innerHTML=s.docs.map(d=>{let x=d.data();return `<div class="item"><b>${x.username||"-"}</b><br><span class="muted">UID: ${d.id}</span><br>Saldo: <b>${money(x.balance)}</b></div>`}).join("")}));
+ unsubs.push(onSnapshot(query(collection(db,"topups"),orderBy("createdAt","desc")),s=>{
+  $("topN").textContent=s.docs.filter(d=>d.data().status==="pending").length;
+  $("topups").innerHTML=s.empty?'<p class="muted">Belum ada top up.</p>':s.docs.map(d=>{let x=d.data();return `<div class="item"><div class="row"><b>${x.username}</b><span class="status">${x.status}</span></div><p>Nominal: <b>${money(x.amount)}</b></p><p class="muted">ID: ${d.id}</p>${x.receiptUrl?`<a href="${x.receiptUrl}" target="_blank"><img class="receipt" src="${x.receiptUrl}"></a>`:""}${x.status==="pending"?`<div class="actions"><button class="primary" onclick="window.approveTopup('${d.id}','${x.uid}',${Number(x.amount)})">ACC & Tambah Saldo</button><button class="danger" onclick="window.rejectTopup('${d.id}')">Tolak</button></div>`:""}</div>`}).join("");
+ });
+ unsubs.push(onSnapshot(query(collection(db,"orders"),orderBy("createdAt","desc")),s=>{
+  $("orderN").textContent=s.docs.filter(d=>["pending"].includes(d.data().status)).length;
+  $("orders").innerHTML=s.empty?'<p class="muted">Belum ada order.</p>':s.docs.map(d=>{let x=d.data();return `<div class="item"><div class="row"><b>${x.username} — ${x.service}</b><span class="status">${x.status}</span></div><p>Target: <b>${x.target}</b><br>Jumlah: ${x.quantity}<br>Total: ${x.total?money(x.total):"Harga manual"}</p><p class="muted">${x.note||""}</p><div class="field"><label>Pesan/status untuk pembeli</label><input id="m_${d.id}" value="${(x.statusMessage||"").replace(/"/g,"&quot;")}"></div><div class="actions">${x.status==="pending"&&!x.total?"<span class='muted'>Harga manual — tetapkan harga melalui data layanan terlebih dahulu.</span>":""}${x.status==="pending"&&x.total?`<button class="primary" onclick="window.processOrder('${d.id}','${x.uid}',${Number(x.total)})">Proses & Potong Saldo</button>`:""}${x.status==="processing"?`<button class="primary" onclick="window.completeOrder('${d.id}')">Tandai Selesai</button>`:""}<button onclick="window.updateMsg('${d.id}')">Simpan Pesan</button></div></div>`}).join("");
+ });
+}
+window.approveTopup=async(id,uid,amount)=>{
+ try{await runTransaction(db,async tx=>{const t=doc(db,"topups",id),u=doc(db,"users",uid),ts=await tx.get(t),us=await tx.get(u);if(!ts.exists()||ts.data().status!=="pending")throw new Error("Top up sudah diproses.");tx.update(u,{balance:(us.data().balance||0)+amount});tx.update(t,{status:"approved",approvedAt:new Date()})})}catch(e){alert(e.message)}
+};
+window.rejectTopup=async id=>{if(confirm("Tolak top up ini?"))await updateDoc(doc(db,"topups",id),{status:"rejected",rejectedAt:new Date()})};
+window.processOrder=async(id,uid,total)=>{
+ try{await runTransaction(db,async tx=>{const o=doc(db,"orders",id),u=doc(db,"users",uid),os=await tx.get(o),us=await tx.get(u);if(os.data().status!=="pending")throw new Error("Order sudah diproses.");const bal=us.data().balance||0;if(bal<total)throw new Error("Saldo pembeli tidak cukup.");tx.update(u,{balance:bal-total});tx.update(o,{status:"processing",statusMessage:"Pesanan sedang diproses oleh admin.",processedAt:new Date()})})}catch(e){alert(e.message)}
+};
+window.completeOrder=async id=>{await updateDoc(doc(db,"orders",id),{status:"completed",statusMessage:"Pesanan selesai diproses.",completedAt:new Date()})};
+window.updateMsg=async id=>{const el=$("m_"+id);if(el)await updateDoc(doc(db,"orders",id),{statusMessage:el.value})};
+onAuthStateChanged(auth,initAdmin);
+</script></body></html>

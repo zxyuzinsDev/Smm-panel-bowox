@@ -1,0 +1,75 @@
+FIRESTORE RULES
+================
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function admin() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true;
+    }
+
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /usernames/{username} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || admin());
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.balance == 0;
+      allow update: if admin() ||
+        (signedIn() && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username']));
+      allow delete: if admin();
+    }
+
+    match /topups/{id} {
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow read: if admin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow update: if admin();
+      allow delete: if admin();
+    }
+
+    match /orders/{id} {
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow read: if admin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow update: if admin();
+      allow delete: if admin();
+    }
+  }
+}
+
+STORAGE RULES
+=============
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    function admin() {
+      return signedIn() &&
+        firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid)) &&
+        firestore.get(/databases/(default)/documents/admins/$(request.auth.uid)).data.active == true;
+    }
+    match /receipts/{uid}/{fileName} {
+      allow read: if signedIn() && (request.auth.uid == uid || admin());
+      allow write: if signedIn() && request.auth.uid == uid
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
+
+SETUP ADMIN:
+1. Buat akun admin melalui index.html.
+2. Firebase Authentication > Users: salin UID akun tersebut.
+3. Firestore Database: buat collection "admins", document ID = UID tersebut, field:
+   active: true
+4. Deploy firestore.rules dan storage.rules di atas.
